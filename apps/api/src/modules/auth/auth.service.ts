@@ -6,7 +6,7 @@ import {
   Logger,
   UnauthorizedException,
 } from '@nestjs/common';
-import { AuditAction, UserStatus, VerificationTokenType } from '@prisma/client';
+import { AuditAction, Prisma, UserStatus, VerificationTokenType } from '@prisma/client';
 import * as argon2 from 'argon2';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TokenService, TokenPair } from './token.service';
@@ -72,7 +72,7 @@ export class AuthService {
         userId,
         ipAddress: ctx.ipAddress,
         userAgent: ctx.userAgent,
-        metadata: metadata ?? undefined,
+        metadata: (metadata ?? undefined) as Prisma.InputJsonValue | undefined,
       },
     });
   }
