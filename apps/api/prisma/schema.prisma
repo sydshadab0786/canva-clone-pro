@@ -1,0 +1,539 @@
+// ════════════════════════════════════════════════════════════════
+//  Canva Clone Pro — Prisma schema (PostgreSQL)
+//
+//  Design principles
+//  - Normalized (3NF) with explicit join tables for many-to-many.
+//  - Soft-delete via `deletedAt` on recoverable entities (projects,
+//    folders, assets) to power the Trash feature.
+//  - OAuth identities live in a separate `Account` table so a single
+//    user can link Google/GitHub/etc. without column bloat on User.
+//  - Every foreign key that is queried has a supporting index.
+//
+//  Covers Phase 1 (auth, users, teams, projects, assets, templates,
+//  billing, audit) and forward-declares editor/collaboration tables
+//  (ProjectVersion, Comment) so migrations stay additive.
+// ════════════════════════════════════════════════════════════════
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────── Enums ───────────────────────────
+
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  DEACTIVATED
+}
+
+enum AuthProvider {
+  GOOGLE
+  GITHUB
+  MICROSOFT
+  APPLE
+  FACEBOOK
+  TWITTER
+}
+
+enum VerificationTokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+  MAGIC_LINK
+  PHONE_VERIFICATION
+}
+
+enum TeamRole {
+  OWNER
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+enum MembershipStatus {
+  INVITED
+  ACTIVE
+  REMOVED
+}
+
+enum ProjectType {
+  INSTAGRAM_POST
+  FACEBOOK_POST
+  YOUTUBE_THUMBNAIL
+  LINKEDIN_POST
+  TWITTER_POST
+  PINTEREST_PIN
+  PRESENTATION
+  RESUME
+  BUSINESS_CARD
+  FLYER
+  POSTER
+  INVOICE
+  CERTIFICATE
+  LETTERHEAD
+  BROCHURE
+  MENU
+  BOOK_COVER
+  LOGO
+  WEBSITE
+  EMAIL_HEADER
+  VIDEO
+  CUSTOM
+}
+
+enum ProjectVisibility {
+  PRIVATE
+  TEAM
+  LINK
+  PUBLIC
+}
+
+enum AssetType {
+  IMAGE
+  VIDEO
+  AUDIO
+  SVG
+  GIF
+  LOTTIE
+  FONT
+  PDF
+  THREE_D
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+}
+
+enum BillingInterval {
+  MONTH
+  YEAR
+}
+
+enum AuditAction {
+  USER_REGISTERED
+  USER_LOGIN
+  USER_LOGIN_FAILED
+  USER_LOGOUT
+  PASSWORD_CHANGED
+  PASSWORD_RESET_REQUESTED
+  EMAIL_VERIFIED
+  TWO_FACTOR_ENABLED
+  TWO_FACTOR_DISABLED
+  PROJECT_CREATED
+  PROJECT_UPDATED
+  PROJECT_DELETED
+  ASSET_UPLOADED
+  TEAM_CREATED
+  MEMBER_INVITED
+  SUBSCRIPTION_CHANGED
+}
+
+// ─────────────────────────────── Core: User ──────────────────────
+
+model User {
+  id              String     @id @default(cuid())
+  email           String     @unique
+  emailVerifiedAt DateTime?
+  passwordHash    String?
+  displayName     String
+  username        String?    @unique
+  avatarUrl       String?
+  phone           String?    @unique
+  phoneVerifiedAt DateTime?
+  role            UserRole   @default(USER)
+  status          UserStatus @default(PENDING)
+  locale          String     @default("en")
+
+  twoFactorEnabled Boolean     @default(false)
+  twoFactorSecret  String?
+  backupCodes      BackupCode[]
+
+  lastLoginAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  accounts           Account[]
+  sessions           Session[]
+  verificationTokens VerificationToken[]
+  ownedTeams         Team[]              @relation("TeamOwner")
+  memberships        TeamMember[]
+  projects           Project[]
+  folders            Folder[]
+  assets             Asset[]
+  brandKits          BrandKit[]
+  subscriptions      Subscription[]
+  notifications      Notification[]
+  auditLogs          AuditLog[]
+  comments           Comment[]
+
+  @@index([status])
+  @@index([role])
+  @@map("users")
+}
+
+model Account {
+  id                String       @id @default(cuid())
+  userId            String
+  provider          AuthProvider
+  providerAccountId String
+  accessToken       String?
+  refreshToken      String?
+  expiresAt         DateTime?
+  createdAt         DateTime     @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Session {
+  id               String    @id @default(cuid())
+  userId           String
+  refreshTokenHash String    @unique
+  userAgent        String?
+  ipAddress        String?
+  deviceName       String?
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  createdAt        DateTime  @default(now())
+  lastUsedAt       DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model VerificationToken {
+  id        String                @id @default(cuid())
+  userId    String
+  type      VerificationTokenType
+  tokenHash String                @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime              @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+  @@index([expiresAt])
+  @@map("verification_tokens")
+}
+
+model BackupCode {
+  id        String    @id @default(cuid())
+  userId    String
+  codeHash  String
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("backup_codes")
+}
+
+// ─────────────────────────── Teams / Workspaces ──────────────────
+
+model Team {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  ownerId   String
+  logoUrl   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner        User          @relation("TeamOwner", fields: [ownerId], references: [id])
+  members      TeamMember[]
+  projects     Project[]
+  folders      Folder[]
+  assets       Asset[]
+  brandKits    BrandKit[]
+  subscription Subscription?
+
+  @@index([ownerId])
+  @@map("teams")
+}
+
+model TeamMember {
+  id        String           @id @default(cuid())
+  teamId    String
+  userId    String
+  role      TeamRole         @default(EDITOR)
+  status    MembershipStatus @default(INVITED)
+  invitedAt DateTime         @default(now())
+  joinedAt  DateTime?
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([userId])
+  @@map("team_members")
+}
+
+// ─────────────────────────────── Projects ────────────────────────
+
+model Folder {
+  id        String    @id @default(cuid())
+  name      String
+  ownerId   String
+  teamId    String?
+  parentId  String?
+  color     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  owner    User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  team     Team?     @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  parent   Folder?   @relation("FolderTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children Folder[]  @relation("FolderTree")
+  projects Project[]
+
+  @@index([ownerId])
+  @@index([teamId])
+  @@index([parentId])
+  @@map("folders")
+}
+
+model Project {
+  id         String            @id @default(cuid())
+  title      String            @default("Untitled design")
+  type       ProjectType       @default(CUSTOM)
+  visibility ProjectVisibility @default(PRIVATE)
+  ownerId    String
+  teamId     String?
+  folderId   String?
+  templateId String?
+
+  width  Int @default(1080)
+  height Int @default(1080)
+
+  document     Json    @default("{}")
+  thumbnailUrl String?
+
+  isTemplate Boolean @default(false)
+  isFavorite Boolean @default(false)
+  shareToken String? @unique
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  owner    User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  team     Team?            @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  folder   Folder?          @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  template Template?        @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  versions ProjectVersion[]
+  comments Comment[]
+
+  @@index([ownerId, deletedAt])
+  @@index([teamId])
+  @@index([folderId])
+  @@index([type])
+  @@index([updatedAt])
+  @@map("projects")
+}
+
+model ProjectVersion {
+  id        String   @id @default(cuid())
+  projectId String
+  authorId  String?
+  document  Json
+  label     String?
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt])
+  @@map("project_versions")
+}
+
+model Comment {
+  id         String    @id @default(cuid())
+  projectId  String
+  authorId   String
+  body       String
+  anchor     Json?
+  resolvedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  author  User    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("comments")
+}
+
+// ─────────────────────────── Media / Assets ──────────────────────
+
+model Asset {
+  id           String    @id @default(cuid())
+  ownerId      String
+  teamId       String?
+  type         AssetType
+  name         String
+  storageKey   String
+  mimeType     String
+  sizeBytes    Int
+  width        Int?
+  height       Int?
+  durationMs   Int?
+  thumbnailUrl String?
+  tags         String[]  @default([])
+  isFavorite   Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  deletedAt    DateTime?
+
+  owner User  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  team  Team? @relation(fields: [teamId], references: [id], onDelete: SetNull)
+
+  @@index([ownerId, type, deletedAt])
+  @@index([teamId])
+  @@map("assets")
+}
+
+// ─────────────────────────────── Templates ───────────────────────
+
+model Template {
+  id           String      @id @default(cuid())
+  title        String
+  type         ProjectType
+  category     String
+  document     Json
+  thumbnailUrl String?
+  width        Int
+  height       Int
+  isPremium    Boolean     @default(false)
+  tags         String[]    @default([])
+  usageCount   Int         @default(0)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  projects Project[]
+
+  @@index([type])
+  @@index([category])
+  @@index([isPremium])
+  @@map("templates")
+}
+
+// ─────────────────────────── Brand Kit ───────────────────────────
+
+model BrandKit {
+  id        String   @id @default(cuid())
+  name      String
+  ownerId   String
+  teamId    String?
+  palette   Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner User  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  team  Team? @relation(fields: [teamId], references: [id], onDelete: SetNull)
+
+  @@index([ownerId])
+  @@index([teamId])
+  @@map("brand_kits")
+}
+
+// ─────────────────────────── Billing ─────────────────────────────
+
+model Plan {
+  id         String          @id @default(cuid())
+  code       String          @unique
+  name       String
+  priceCents Int
+  interval   BillingInterval @default(MONTH)
+  aiCredits  Int             @default(0)
+  storageMb  Int             @default(1000)
+  features   Json            @default("{}")
+  isActive   Boolean         @default(true)
+
+  subscriptions Subscription[]
+
+  @@map("plans")
+}
+
+model Subscription {
+  id                 String             @id @default(cuid())
+  userId             String?
+  teamId             String?            @unique
+  planId             String
+  status             SubscriptionStatus @default(TRIALING)
+  provider           String?
+  providerCustomerId String?
+  providerSubId      String?
+  currentPeriodEnd   DateTime?
+  cancelAtPeriodEnd  Boolean            @default(false)
+  aiCreditsRemaining Int                @default(0)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team Team? @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  plan Plan  @relation(fields: [planId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+  @@map("subscriptions")
+}
+
+// ─────────────────────────── Notifications ───────────────────────
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  body      String?
+  data      Json?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+// ─────────────────────────── Audit log ───────────────────────────
+
+model AuditLog {
+  id         String      @id @default(cuid())
+  userId     String?
+  action     AuditAction
+  targetType String?
+  targetId   String?
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime    @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

@@ -1,0 +1,29 @@
+{
+  "name": "canva-clone-pro",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Canva Clone Pro — a production-grade online design platform (monorepo).",
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:e2e": "turbo run test:e2e",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "db:generate": "pnpm --filter @ccp/api prisma:generate",
+    "db:migrate": "pnpm --filter @ccp/api prisma:migrate",
+    "db:seed": "pnpm --filter @ccp/api prisma:seed",
+    "infra:up": "docker compose -f docker/docker-compose.yml up -d",
+    "infra:down": "docker compose -f docker/docker-compose.yml down"
+  },
+  "devDependencies": {
+    "prettier": "^3.4.2",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.3"
+  }
+}
