@@ -1,6 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit';
 import authReducer from './features/auth/authSlice';
 import editorReducer from './features/editor/editorSlice';
+import videoReducer from './features/video/videoSlice';
 
 /**
  * Root store factory. A factory (not a singleton) keeps SSR requests
@@ -11,6 +12,7 @@ export function makeStore() {
     reducer: {
       auth: authReducer,
       editor: editorReducer,
+      video: videoReducer,
     },
     // The editor stores non-serializable-free but large docs; the interaction
     // base can briefly hold a full document snapshot. Disable the perf-heavy

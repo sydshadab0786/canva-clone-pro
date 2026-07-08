@@ -3,11 +3,12 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Loader2 } from 'lucide-react';
+import { Plus, Loader2, Film } from 'lucide-react';
 import { useAppSelector } from '@/lib/hooks';
 import { Button } from '@/components/ui/button';
 import { createProject, listProjects, type ProjectSummary } from '@/lib/api/projects';
-import { emptyDocument } from '@/lib/editor/types';
+import { emptyDocument, type SceneDocument } from '@/lib/editor/types';
+import { emptyVideoDocument } from '@/lib/video/types';
 
 // Design-type quick-start tiles mirroring the Canva create flow.
 const CREATE_TILES = [
@@ -47,6 +48,21 @@ export default function DashboardHome() {
     onSettled: () => setCreatingLabel(null),
   });
 
+  const createVideo = useMutation({
+    mutationFn: () =>
+      createProject({
+        title: 'Untitled video',
+        type: 'VIDEO',
+        width: 1920,
+        height: 1080,
+        document: emptyVideoDocument() as unknown as SceneDocument,
+      }),
+    onSuccess: (project) => {
+      void queryClient.invalidateQueries({ queryKey: ['projects'] });
+      router.push(`/video/${project.id}`);
+    },
+  });
+
   const recents: ProjectSummary[] = data?.items ?? [];
 
   return (
@@ -58,16 +74,27 @@ export default function DashboardHome() {
           </h1>
           <p className="text-sm text-muted-foreground">What will you design today?</p>
         </div>
-        <Button
-          className="gap-2"
-          disabled={create.isPending}
-          onClick={() =>
-            create.mutate({ label: 'Untitled design', type: 'CUSTOM', w: 1080, h: 1080 })
-          }
-        >
-          {create.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-          Create a design
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            className="gap-2"
+            disabled={createVideo.isPending}
+            onClick={() => createVideo.mutate()}
+          >
+            {createVideo.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Film className="h-4 w-4" />}
+            Create a video
+          </Button>
+          <Button
+            className="gap-2"
+            disabled={create.isPending}
+            onClick={() =>
+              create.mutate({ label: 'Untitled design', type: 'CUSTOM', w: 1080, h: 1080 })
+            }
+          >
+            {create.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+            Create a design
+          </Button>
+        </div>
       </div>
 
       <section>
@@ -109,7 +136,7 @@ export default function DashboardHome() {
             {recents.map((p) => (
               <button
                 key={p.id}
-                onClick={() => router.push(`/design/${p.id}`)}
+                onClick={() => router.push(`${p.type === 'VIDEO' ? '/video' : '/design'}/${p.id}`)}
                 className="group overflow-hidden rounded-lg border text-left transition-colors hover:border-primary"
               >
                 <div className="flex aspect-video items-center justify-center bg-secondary">

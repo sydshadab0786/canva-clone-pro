@@ -18,6 +18,7 @@ import { SearchModule } from './modules/search/search.module';
 import { AiModule } from './modules/ai/ai.module';
 import { CommentsModule } from './modules/comments/comments.module';
 import { CollabModule } from './modules/collab/collab.module';
+import { ExportModule } from './modules/export/export.module';
 import { HealthController } from './modules/health/health.controller';
 
 @Module({
@@ -41,6 +42,7 @@ import { HealthController } from './modules/health/health.controller';
     AiModule,
     CommentsModule,
     CollabModule,
+    ExportModule,
   ],
   controllers: [HealthController],
   providers: [
