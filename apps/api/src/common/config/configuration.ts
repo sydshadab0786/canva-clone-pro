@@ -40,6 +40,13 @@ export interface AppConfig {
     anthropicApiKey?: string;
     anthropicModel: string;
   };
+  billing: {
+    provider: 'mock' | 'stripe' | 'paypal' | 'razorpay';
+    stripeSecretKey?: string;
+    stripeWebhookSecret?: string;
+    currency: string;
+    checkoutBaseUrl: string;
+  };
 }
 
 export default (): AppConfig => ({
@@ -87,5 +94,14 @@ export default (): AppConfig => ({
     provider: process.env.ANTHROPIC_API_KEY ? 'anthropic' : 'local',
     anthropicApiKey: process.env.ANTHROPIC_API_KEY || undefined,
     anthropicModel: process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-5',
+  },
+  billing: {
+    // 'mock' activates immediate in-app subscription activation for dev; a real
+    // provider (Stripe/PayPal/Razorpay) engages when its keys are present.
+    provider: (process.env.BILLING_PROVIDER as AppConfig['billing']['provider']) ?? 'mock',
+    stripeSecretKey: process.env.STRIPE_SECRET_KEY || undefined,
+    stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || undefined,
+    currency: process.env.BILLING_CURRENCY ?? 'usd',
+    checkoutBaseUrl: process.env.BILLING_CHECKOUT_BASE_URL ?? 'http://localhost:3000/dashboard/billing',
   },
 });

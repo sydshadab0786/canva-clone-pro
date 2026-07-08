@@ -13,6 +13,8 @@ import {
   Bell,
   Settings,
   LogOut,
+  CreditCard,
+  Shield,
 } from 'lucide-react';
 import { AuthGuard } from '@/components/auth-guard';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -31,10 +33,13 @@ const NAV = [
   { href: '/dashboard/brand-kit', label: 'Brand Kit', icon: Palette },
   { href: '/dashboard/uploads', label: 'Uploads', icon: Upload },
   { href: '/dashboard/trash', label: 'Trash', icon: Trash2 },
+  { href: '/dashboard/billing', label: 'Billing', icon: CreditCard },
 ];
 
 function Sidebar() {
   const pathname = usePathname();
+  const role = useAppSelector((s) => s.auth.user?.role);
+  const isAdmin = role === 'ADMIN' || role === 'SUPER_ADMIN';
   return (
     <aside className="hidden w-60 shrink-0 border-r p-4 md:block">
       <nav className="space-y-1">
@@ -54,6 +59,20 @@ function Sidebar() {
             </Link>
           );
         })}
+        {isAdmin && (
+          <Link
+            href="/admin"
+            className={cn(
+              'mt-2 flex items-center gap-3 rounded-md border-t px-3 py-2 pt-4 text-sm font-medium transition-colors',
+              pathname.startsWith('/admin')
+                ? 'bg-secondary text-foreground'
+                : 'text-muted-foreground hover:bg-accent',
+            )}
+          >
+            <Shield className="h-4 w-4" />
+            Admin
+          </Link>
+        )}
       </nav>
     </aside>
   );

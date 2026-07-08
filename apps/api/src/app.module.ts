@@ -19,6 +19,9 @@ import { AiModule } from './modules/ai/ai.module';
 import { CommentsModule } from './modules/comments/comments.module';
 import { CollabModule } from './modules/collab/collab.module';
 import { ExportModule } from './modules/export/export.module';
+import { BillingModule } from './modules/billing/billing.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { AdminModule } from './modules/admin/admin.module';
 import { HealthController } from './modules/health/health.controller';
 
 @Module({
@@ -43,6 +46,9 @@ import { HealthController } from './modules/health/health.controller';
     CommentsModule,
     CollabModule,
     ExportModule,
+    BillingModule,
+    AnalyticsModule,
+    AdminModule,
   ],
   controllers: [HealthController],
   providers: [
