@@ -17,6 +17,11 @@ import { EditorToolbar } from './EditorToolbar';
 import { LayersPanel } from './LayersPanel';
 import { PropertiesPanel } from './PropertiesPanel';
 import { MediaPanel } from './MediaPanel';
+import { AiPanel } from './AiPanel';
+import { CommentsPanel } from './CommentsPanel';
+import { PresenceAvatars } from './PresenceAvatars';
+import { RemoteCursors } from './RemoteCursors';
+import { useCollab } from '@/lib/collab/useCollab';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { cn } from '@/lib/utils';
 
@@ -48,6 +53,14 @@ export function EditorShell({ id }: { id: string }) {
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [saving, setSaving] = useState(false);
   const [leftTab, setLeftTab] = useState<'layers' | 'uploads'>('layers');
+  const [rightTab, setRightTab] = useState<'properties' | 'ai' | 'comments'>('properties');
+
+  // Real-time collaboration: presence, remote cursors, live document sync.
+  const { participants, cursors, emitCursor } = useCollab(id);
+  // Keep a live viewport ref so the mousemove handler avoids stale closures.
+  const viewport = useAppSelector((s) => s.editor.viewport);
+  const viewportRef = useRef(viewport);
+  viewportRef.current = viewport;
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const centeredRef = useRef(false);
 
@@ -179,7 +192,8 @@ export function EditorShell({ id }: { id: string }) {
             }}
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <PresenceAvatars participants={participants} />
           <span className="flex items-center gap-1 text-xs text-muted-foreground">
             {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
             {savedLabel}
@@ -213,7 +227,19 @@ export function EditorShell({ id }: { id: string }) {
           <div className="min-h-0 flex-1">{leftTab === 'layers' ? <LayersPanel /> : <MediaPanel />}</div>
         </aside>
 
-        <div ref={stageWrapRef} className="relative min-w-0 flex-1 bg-muted">
+        <div
+          ref={stageWrapRef}
+          className="relative min-w-0 flex-1 bg-muted"
+          onMouseMove={(e) => {
+            const rect = stageWrapRef.current?.getBoundingClientRect();
+            if (!rect) return;
+            // Screen → artboard coords, so peers see the cursor at the same point.
+            const sx = e.clientX - rect.left;
+            const sy = e.clientY - rect.top;
+            const vp = viewportRef.current;
+            emitCursor((sx - vp.x) / vp.scale, (sy - vp.y) / vp.scale);
+          }}
+        >
           {isLoading ? (
             <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
               Loading design…
@@ -221,10 +247,31 @@ export function EditorShell({ id }: { id: string }) {
           ) : (
             size.w > 0 && <EditorCanvas stageWidth={size.w} stageHeight={size.h} />
           )}
+          <RemoteCursors cursors={cursors} />
         </div>
 
-        <aside className="hidden w-64 shrink-0 border-l lg:block">
-          <PropertiesPanel />
+        <aside className="hidden w-64 shrink-0 flex-col border-l lg:flex">
+          <div className="flex border-b">
+            {(['properties', 'ai', 'comments'] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setRightTab(tab)}
+                className={cn(
+                  'flex-1 px-2 py-2 text-xs font-medium capitalize transition-colors',
+                  rightTab === tab
+                    ? 'border-b-2 border-primary text-foreground'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+          <div className="min-h-0 flex-1 overflow-hidden">
+            {rightTab === 'properties' && <PropertiesPanel />}
+            {rightTab === 'ai' && <AiPanel />}
+            {rightTab === 'comments' && <CommentsPanel projectId={id} />}
+          </div>
         </aside>
       </div>
     </div>

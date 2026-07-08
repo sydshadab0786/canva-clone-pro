@@ -15,6 +15,9 @@ import { StorageModule } from './modules/storage/storage.module';
 import { MediaModule } from './modules/media/media.module';
 import { TemplatesModule } from './modules/templates/templates.module';
 import { SearchModule } from './modules/search/search.module';
+import { AiModule } from './modules/ai/ai.module';
+import { CommentsModule } from './modules/comments/comments.module';
+import { CollabModule } from './modules/collab/collab.module';
 import { HealthController } from './modules/health/health.controller';
 
 @Module({
@@ -35,6 +38,9 @@ import { HealthController } from './modules/health/health.controller';
     ProjectsModule,
     MediaModule,
     TemplatesModule,
+    AiModule,
+    CommentsModule,
+    CollabModule,
   ],
   controllers: [HealthController],
   providers: [

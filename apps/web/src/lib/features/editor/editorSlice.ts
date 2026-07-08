@@ -232,6 +232,16 @@ const editorSlice = createSlice({
     markSaved(state) {
       state.dirty = false;
     },
+
+    /**
+     * Apply a document received from a remote collaborator. Replaces the
+     * present without an undo entry and leaves `dirty` false so it is neither
+     * re-broadcast nor autosaved by this client (the editing peer owns saving).
+     */
+    applyRemoteDocument(state, action: PayloadAction<SceneDocument>) {
+      state.history.present = action.payload;
+      state.dirty = false;
+    },
   },
 });
 

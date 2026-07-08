@@ -35,6 +35,11 @@ export interface AppConfig {
   elasticsearch: {
     node: string;
   };
+  ai: {
+    provider: 'local' | 'anthropic';
+    anthropicApiKey?: string;
+    anthropicModel: string;
+  };
 }
 
 export default (): AppConfig => ({
@@ -75,5 +80,12 @@ export default (): AppConfig => ({
   },
   elasticsearch: {
     node: process.env.ELASTICSEARCH_NODE ?? 'http://localhost:9200',
+  },
+  ai: {
+    // Falls back to the deterministic local provider when no key is present,
+    // so every AI feature works end-to-end in dev without external calls.
+    provider: process.env.ANTHROPIC_API_KEY ? 'anthropic' : 'local',
+    anthropicApiKey: process.env.ANTHROPIC_API_KEY || undefined,
+    anthropicModel: process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-5',
   },
 });
