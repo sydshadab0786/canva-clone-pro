@@ -16,7 +16,9 @@ import { emptyDocument, type SceneDocument } from '@/lib/editor/types';
 import { EditorToolbar } from './EditorToolbar';
 import { LayersPanel } from './LayersPanel';
 import { PropertiesPanel } from './PropertiesPanel';
+import { MediaPanel } from './MediaPanel';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { cn } from '@/lib/utils';
 
 // Konva touches `window` on import, so the canvas must be client-only.
 const EditorCanvas = dynamic(() => import('./EditorCanvas').then((m) => m.EditorCanvas), {
@@ -45,6 +47,7 @@ export function EditorShell({ id }: { id: string }) {
   const stageWrapRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [saving, setSaving] = useState(false);
+  const [leftTab, setLeftTab] = useState<'layers' | 'uploads'>('layers');
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const centeredRef = useRef(false);
 
@@ -190,8 +193,24 @@ export function EditorShell({ id }: { id: string }) {
 
       {/* Body: layers | canvas | properties */}
       <div className="flex min-h-0 flex-1">
-        <aside className="hidden w-60 shrink-0 border-r md:block">
-          <LayersPanel />
+        <aside className="hidden w-60 shrink-0 flex-col border-r md:flex">
+          <div className="flex border-b">
+            {(['layers', 'uploads'] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setLeftTab(tab)}
+                className={cn(
+                  'flex-1 px-3 py-2 text-xs font-medium capitalize transition-colors',
+                  leftTab === tab
+                    ? 'border-b-2 border-primary text-foreground'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+          <div className="min-h-0 flex-1">{leftTab === 'layers' ? <LayersPanel /> : <MediaPanel />}</div>
         </aside>
 
         <div ref={stageWrapRef} className="relative min-w-0 flex-1 bg-muted">

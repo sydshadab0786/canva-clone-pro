@@ -23,6 +23,18 @@ export interface AppConfig {
     port: number;
     password?: string;
   };
+  storage: {
+    endpoint: string;
+    region: string;
+    accessKey: string;
+    secretKey: string;
+    bucket: string;
+    forcePathStyle: boolean;
+    publicBaseUrl: string;
+  };
+  elasticsearch: {
+    node: string;
+  };
 }
 
 export default (): AppConfig => ({
@@ -48,5 +60,20 @@ export default (): AppConfig => ({
     host: process.env.REDIS_HOST ?? 'localhost',
     port: parseInt(process.env.REDIS_PORT ?? '6379', 10),
     password: process.env.REDIS_PASSWORD || undefined,
+  },
+  storage: {
+    endpoint: process.env.S3_ENDPOINT ?? 'http://localhost:9000',
+    region: process.env.S3_REGION ?? 'us-east-1',
+    accessKey: process.env.S3_ACCESS_KEY ?? 'minioadmin',
+    secretKey: process.env.S3_SECRET_KEY ?? 'minioadmin',
+    bucket: process.env.S3_BUCKET ?? 'ccp-media',
+    forcePathStyle: (process.env.S3_FORCE_PATH_STYLE ?? 'true') === 'true',
+    // Public read base; MinIO serves objects at {endpoint}/{bucket}/{key}.
+    publicBaseUrl:
+      process.env.S3_PUBLIC_BASE_URL ??
+      `${process.env.S3_ENDPOINT ?? 'http://localhost:9000'}/${process.env.S3_BUCKET ?? 'ccp-media'}`,
+  },
+  elasticsearch: {
+    node: process.env.ELASTICSEARCH_NODE ?? 'http://localhost:9200',
   },
 });

@@ -82,8 +82,11 @@ export interface RequestOptions extends Omit<RequestInit, 'body'> {
 
 export async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { body, auth = true, _retried, headers, ...rest } = options;
+  // FormData (file uploads) must NOT get a JSON content-type — the browser
+  // sets the multipart boundary itself.
+  const isForm = typeof FormData !== 'undefined' && body instanceof FormData;
   const finalHeaders: Record<string, string> = {
-    'Content-Type': 'application/json',
+    ...(isForm ? {} : { 'Content-Type': 'application/json' }),
     ...(headers as Record<string, string> | undefined),
   };
 
@@ -95,7 +98,7 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
   const res = await fetch(`${API_URL}/v1${path}`, {
     ...rest,
     headers: finalHeaders,
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: body === undefined ? undefined : isForm ? (body as FormData) : JSON.stringify(body),
   });
 
   if (res.status === 401 && auth && !_retried) {

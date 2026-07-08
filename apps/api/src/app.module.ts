@@ -11,6 +11,10 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { ProjectsModule } from './modules/projects/projects.module';
+import { StorageModule } from './modules/storage/storage.module';
+import { MediaModule } from './modules/media/media.module';
+import { TemplatesModule } from './modules/templates/templates.module';
+import { SearchModule } from './modules/search/search.module';
 import { HealthController } from './modules/health/health.controller';
 
 @Module({
@@ -24,9 +28,13 @@ import { HealthController } from './modules/health/health.controller';
     // Global rate limiting: 120 requests / minute / IP by default.
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
     PrismaModule,
+    StorageModule,
+    SearchModule,
     AuthModule,
     UsersModule,
     ProjectsModule,
+    MediaModule,
+    TemplatesModule,
   ],
   controllers: [HealthController],
   providers: [

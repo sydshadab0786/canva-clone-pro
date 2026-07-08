@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { AuthGuard } from '@/components/auth-guard';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { SearchBox } from '@/components/search-box';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAppSelector, useAppDispatch } from '@/lib/hooks';
@@ -70,10 +71,13 @@ function Topbar() {
   }
 
   return (
-    <header className="flex h-16 items-center justify-between border-b px-6">
-      <Link href="/dashboard" className="text-lg font-bold">
+    <header className="flex h-16 items-center gap-4 border-b px-6">
+      <Link href="/dashboard" className="shrink-0 text-lg font-bold">
         Canva<span className="text-primary">Clone</span> Pro
       </Link>
+      <div className="flex flex-1 justify-center">
+        <SearchBox />
+      </div>
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="icon" aria-label="Notifications">
           <Bell className="h-5 w-5" />
