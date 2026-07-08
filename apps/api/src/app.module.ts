@@ -10,6 +10,7 @@ import { RolesGuard } from './common/guards/roles.guard';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
+import { ProjectsModule } from './modules/projects/projects.module';
 import { HealthController } from './modules/health/health.controller';
 
 @Module({
@@ -25,6 +26,7 @@ import { HealthController } from './modules/health/health.controller';
     PrismaModule,
     AuthModule,
     UsersModule,
+    ProjectsModule,
   ],
   controllers: [HealthController],
   providers: [

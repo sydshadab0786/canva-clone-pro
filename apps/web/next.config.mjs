@@ -8,6 +8,13 @@ const nextConfig = {
       { protocol: 'https', hostname: '**' },
     ],
   },
+  webpack: (config) => {
+    // Konva ships a Node build that optionally requires the native `canvas`
+    // package for server-side rendering. We only use Konva client-side, so
+    // stub it out to keep the bundle clean and the build green.
+    config.resolve.alias = { ...config.resolve.alias, canvas: false };
+    return config;
+  },
   async headers() {
     // Baseline security headers; CSP is tightened per-route as features land.
     return [

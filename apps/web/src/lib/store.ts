@@ -1,5 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit';
 import authReducer from './features/auth/authSlice';
+import editorReducer from './features/editor/editorSlice';
 
 /**
  * Root store factory. A factory (not a singleton) keeps SSR requests
@@ -9,7 +10,15 @@ export function makeStore() {
   return configureStore({
     reducer: {
       auth: authReducer,
+      editor: editorReducer,
     },
+    // The editor stores non-serializable-free but large docs; the interaction
+    // base can briefly hold a full document snapshot. Disable the perf-heavy
+    // serializable check paths for the editor's live-update action.
+    middleware: (getDefault) =>
+      getDefault({
+        serializableCheck: { ignoredPaths: ['editor.interactionBase'] },
+      }),
   });
 }
 
