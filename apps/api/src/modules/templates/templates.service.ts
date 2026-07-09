@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { AuditAction, Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { TtlCache } from '../../common/cache/ttl-cache';
 import { ListTemplatesQueryDto } from './dto/templates.dto';
 
 // Lightweight card payload — the heavy `document` is only sent on detail/use.
@@ -19,6 +20,9 @@ const CARD_SELECT = {
 
 @Injectable()
 export class TemplatesService {
+  // Categories change rarely; cache for 60s to cut repeated groupBy queries.
+  private readonly categoryCache = new TtlCache<{ category: string; count: number }[]>(60_000);
+
   constructor(private readonly prisma: PrismaService) {}
 
   async list(query: ListTemplatesQueryDto) {
@@ -52,13 +56,15 @@ export class TemplatesService {
     return { items, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
   }
 
-  async categories() {
-    const rows = await this.prisma.template.groupBy({
-      by: ['category'],
-      _count: { category: true },
-      orderBy: { _count: { category: 'desc' } },
+  categories() {
+    return this.categoryCache.wrap('all', async () => {
+      const rows = await this.prisma.template.groupBy({
+        by: ['category'],
+        _count: { category: true },
+        orderBy: { _count: { category: 'desc' } },
+      });
+      return rows.map((r) => ({ category: r.category, count: r._count.category }));
     });
-    return rows.map((r) => ({ category: r.category, count: r._count.category }));
   }
 
   async getById(id: string) {

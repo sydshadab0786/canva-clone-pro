@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
+import compression from 'compression';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { AppConfig } from './common/config/configuration';
@@ -14,8 +15,9 @@ async function bootstrap(): Promise<void> {
   const config = app.get(ConfigService<AppConfig, true>);
   const api = config.get('api', { infer: true });
 
-  // ── Security hardening ──────────────────────────────────────────
+  // ── Security hardening + performance ────────────────────────────
   app.use(helmet());
+  app.use(compression());
   app.use(cookieParser());
   app.enableCors({ origin: api.corsOrigins, credentials: true });
 

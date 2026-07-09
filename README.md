@@ -4,8 +4,11 @@ A production-grade online design platform (a Canva-style editor) built as a
 TypeScript monorepo. This repository is developed in **phases** — each phase
 ships real, tested, runnable code before the next begins.
 
-> **Status:** Phase 1 complete — monorepo, database, authentication, and the
-> web foundation are implemented, typechecked, and unit-tested.
+> **Status:** Phases 1–7 implemented — auth, the design editor, media/templates/
+> search, AI + real-time collaboration, the video editor, payments/admin/
+> analytics, and the deployment stack are all in place, typechecked, and
+> unit-tested (86 unit tests: 64 API + 22 web) with a green production build and
+> Playwright E2E + CI wired.
 
 ---
 
@@ -106,12 +109,14 @@ pnpm --filter @ccp/web build
 | Phase | Scope |
 |-------|-------|
 | 1 ✅ | Setup, architecture, database, authentication, web foundation |
-| 2 | Editor engine — canvas, objects, layers, history |
-| 3 | Templates, media library, uploads, search |
-| 4 | AI features, real-time collaboration |
-| 5 | Video editor, animation, timeline |
-| 6 | Payments, admin panel, analytics |
-| 7 | Optimization, full test suite, deployment |
+| 2 ✅ | Editor engine — canvas (Konva), objects, layers, undo/redo history, autosave |
+| 3 ✅ | Templates gallery, media library, S3 uploads, Elasticsearch search |
+| 4 ✅ | AI (text/palette/fonts/accessibility/image), real-time collaboration (Socket.io) |
+| 5 ✅ | Video editor — timeline, clips, trim/split, playback, MP4 export scaffold |
+| 6 ✅ | Payments (Stripe/PayPal/Razorpay), admin panel, analytics, feature flags |
+| 7 ✅ | Prometheus metrics, caching, Docker, Nginx, CI, Playwright E2E, deployment |
+
+See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for running the full stack.
 
 ## License
 

@@ -22,6 +22,7 @@ import { ExportModule } from './modules/export/export.module';
 import { BillingModule } from './modules/billing/billing.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { MetricsModule } from './modules/metrics/metrics.module';
 import { HealthController } from './modules/health/health.controller';
 
 @Module({
@@ -34,6 +35,7 @@ import { HealthController } from './modules/health/health.controller';
     }),
     // Global rate limiting: 120 requests / minute / IP by default.
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
+    MetricsModule,
     PrismaModule,
     StorageModule,
     SearchModule,
