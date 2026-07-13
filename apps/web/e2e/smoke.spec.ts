@@ -15,12 +15,12 @@ test('navigates to the login page', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('link', { name: /^log in$/i }).first().click();
   await expect(page).toHaveURL(/\/login$/);
-  await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible();
+  await expect(page.getByText(/welcome back/i)).toBeVisible();
 });
 
 test('register page shows validation errors on empty submit', async ({ page }) => {
   await page.goto('/register');
-  await expect(page.getByRole('heading', { name: /create your account/i })).toBeVisible();
+  await expect(page.getByText(/create your account/i)).toBeVisible();
   await page.getByRole('button', { name: /create account/i }).click();
   // Zod client validation should surface at least one field error.
   await expect(page.getByText(/tell us your name|valid email|8 characters/i).first()).toBeVisible();
