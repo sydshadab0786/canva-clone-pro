@@ -5,6 +5,11 @@ const nextConfig = {
   // Emit a self-contained server bundle for a small production Docker image.
   output: 'standalone',
   compress: true,
+  // A production `next build` writes to the same directory `next dev` serves
+  // from, which silently breaks a running dev server (every chunk 404s and the
+  // page renders unstyled). Verification builds set NEXT_DIST_DIR to keep the
+  // two apart.
+  distDir: process.env.NEXT_DIST_DIR ?? '.next',
   images: {
     remotePatterns: [
       { protocol: 'http', hostname: 'localhost' },
