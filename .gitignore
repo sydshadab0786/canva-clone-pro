@@ -39,3 +39,4 @@ apps/api/prisma/*.db
 
 # Docker volumes (local)
 docker/volumes/
+.logs/

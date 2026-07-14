@@ -12,7 +12,7 @@ import {
   selectEditorMeta,
 } from '@/lib/features/editor/editorSlice';
 import { getProject, renameProject, saveDocument } from '@/lib/api/projects';
-import { emptyDocument, type SceneDocument } from '@/lib/editor/types';
+import { normalizeScene } from '@/lib/editor/normalize';
 import { EditorToolbar } from './EditorToolbar';
 import { LayersPanel } from './LayersPanel';
 import { PropertiesPanel } from './PropertiesPanel';
@@ -35,14 +35,9 @@ const EditorCanvas = dynamic(() => import('./EditorCanvas').then((m) => m.Editor
   ),
 });
 
-function normalizeDocument(raw: unknown, background = '#ffffff'): SceneDocument {
-  const d = (raw ?? {}) as Partial<SceneDocument>;
-  return {
-    version: 1,
-    background: typeof d.background === 'string' ? d.background : background,
-    objects: Array.isArray(d.objects) ? d.objects : [],
-  };
-}
+// Documents arrive from templates, old autosaves and hand-edited JSON, so they
+// are normalized (missing geometry filled in) before touching the canvas —
+// otherwise e.g. template text without a height yields NaN on resize.
 
 export function EditorShell({ id }: { id: string }) {
   const dispatch = useAppDispatch();
@@ -79,7 +74,7 @@ export function EditorShell({ id }: { id: string }) {
         title: data.title,
         width: data.width,
         height: data.height,
-        document: normalizeDocument(data.document),
+        document: normalizeScene(data.document),
       }),
     );
     centeredRef.current = false;

@@ -165,6 +165,65 @@ test.describe('feature sweep', () => {
     expect(errors, errors.join('\n')).toEqual([]);
   });
 
+  /**
+   * Regression: seeded template TEXT objects shipped without a `height`, so
+   * `height * scaleY` produced NaN the moment a layer was selected or resized —
+   * the object broke and React logged "Received NaN for the value attribute".
+   * Open EVERY template, select EVERY layer, and assert the geometry is finite.
+   */
+  test('templates: every template is fully editable — no NaN geometry on any layer', async ({
+    page,
+  }) => {
+    test.setTimeout(240_000); // 5 templates × every layer
+    const errors = trackErrors(page);
+    await login(page);
+    // Warm the /design/[id] route so the first template isn't racing a dev compile.
+    await newDesign(page);
+
+    const TEMPLATES = [
+      /bold quote/i,
+      /youtube thumbnail/i,
+      /clean resume/i,
+      /event poster/i,
+      /business card/i,
+    ];
+
+    for (const name of TEMPLATES) {
+      await page.goto('/dashboard/templates');
+      const card = page.locator('div.group').filter({ hasText: name }).first();
+      await card.hover();
+      await card.getByRole('button', { name: /use this template/i }).click();
+
+      await expect(page).toHaveURL(/\/design\/[a-z0-9]+/i, { timeout: 30_000 });
+      await expect(page.locator('canvas').first()).toBeVisible({ timeout: 30_000 });
+
+      const layers = page.locator('aside').first();
+      const rows = layers.locator('[role="button"]');
+      const count = await rows.count();
+      expect(count, `${name} loaded no layers`).toBeGreaterThan(0);
+
+      const props = page.locator('aside').last();
+      for (let i = 0; i < count; i += 1) {
+        await rows.nth(i).click();
+
+        // X, Y, W, H, Rotation must all be real numbers.
+        const numeric = props.locator('input[type="number"]');
+        const values = await numeric.evaluateAll((els) =>
+          els.map((el) => (el as HTMLInputElement).value),
+        );
+        expect(values.length, `${name} layer ${i}: no property inputs`).toBeGreaterThanOrEqual(5);
+        for (const v of values) {
+          expect(
+            Number.isFinite(Number(v)) && v !== '',
+            `${name} layer ${i}: non-numeric property "${v}"`,
+          ).toBe(true);
+        }
+      }
+    }
+
+    expect(errors, errors.join('\n')).toEqual([]);
+  });
+
   // ── Uploads (S3/MinIO) ───────────────────────────────────────
   test('uploads: file uploads, appears in grid, and inserts onto the canvas', async ({ page }) => {
     const errors = trackErrors(page);

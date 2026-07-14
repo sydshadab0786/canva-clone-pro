@@ -72,10 +72,17 @@ export function LayersPanel() {
           const Icon = ICONS[obj.type];
           const active = selectedIds.includes(obj.id);
           return (
+            /**
+             * The row controls are absolutely positioned rather than inline:
+             * laid out inline they consumed ~half the row, so a click near the
+             * middle landed on the reorder chevrons (which stopPropagation) and
+             * silently reordered the layer instead of selecting it.
+             * Now the name owns the full row and clicking anywhere selects.
+             */
             <div
               key={obj.id}
               className={cn(
-                'group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm',
+                'group relative flex items-center gap-2 rounded-md py-1.5 pl-2 pr-2 text-sm',
                 active ? 'bg-secondary' : 'hover:bg-accent',
               )}
               onClick={() => dispatch(editorActions.setSelection([obj.id]))}
@@ -85,7 +92,12 @@ export function LayersPanel() {
               <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
               <span className="flex-1 truncate">{layerLabel(obj)}</span>
 
-              <div className="flex items-center opacity-0 transition-opacity group-hover:opacity-100">
+              <div
+                className={cn(
+                  'absolute right-1 top-1/2 flex -translate-y-1/2 items-center rounded px-0.5 opacity-0 transition-opacity group-hover:opacity-100',
+                  active ? 'bg-secondary' : 'bg-accent',
+                )}
+              >
                 <button
                   className="rounded p-1 hover:bg-background"
                   aria-label="Move up"
@@ -106,28 +118,27 @@ export function LayersPanel() {
                 >
                   <ChevronDown className="h-3.5 w-3.5" />
                 </button>
+                <button
+                  className="rounded p-1 hover:bg-background"
+                  aria-label={obj.locked ? 'Unlock' : 'Lock'}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggle(obj, 'locked');
+                  }}
+                >
+                  {obj.locked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5 opacity-50" />}
+                </button>
+                <button
+                  className="rounded p-1 hover:bg-background"
+                  aria-label={obj.visible ? 'Hide' : 'Show'}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggle(obj, 'visible');
+                  }}
+                >
+                  {obj.visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5 opacity-50" />}
+                </button>
               </div>
-
-              <button
-                className="rounded p-1 hover:bg-background"
-                aria-label={obj.locked ? 'Unlock' : 'Lock'}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggle(obj, 'locked');
-                }}
-              >
-                {obj.locked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5 opacity-50" />}
-              </button>
-              <button
-                className="rounded p-1 hover:bg-background"
-                aria-label={obj.visible ? 'Hide' : 'Show'}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggle(obj, 'visible');
-                }}
-              >
-                {obj.visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5 opacity-50" />}
-              </button>
             </div>
           );
         })}

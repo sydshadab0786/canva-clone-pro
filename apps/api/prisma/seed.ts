@@ -30,19 +30,31 @@ const base = (over: Record<string, unknown>) => ({
 });
 
 const rect = (o: Record<string, unknown>) => base({ type: 'rect', name: 'Rectangle', stroke: null, strokeWidth: 0, cornerRadius: 0, id: oid('rect'), ...o });
-const text = (o: Record<string, unknown>) =>
-  base({
+
+/**
+ * Text objects MUST carry a height. The editor does arithmetic on it
+ * (width/height × transform scale); a missing height yields NaN and the object
+ * breaks the moment it is selected or resized. Derive it from the typography
+ * when the caller doesn't supply one: fontSize × lineHeight × line count.
+ */
+const text = (o: Record<string, unknown>) => {
+  const fontSize = (o.fontSize as number) ?? 32;
+  const lineHeight = (o.lineHeight as number) ?? 1.2;
+  const lines = Math.max(1, String(o.text ?? '').split('\n').length);
+  return base({
     type: 'text',
     name: 'Text',
     fontFamily: 'Inter',
     fontStyle: 'normal',
     align: 'left',
     fill: '#111827',
-    lineHeight: 1.2,
+    lineHeight,
     letterSpacing: 0,
+    height: Math.round(fontSize * lineHeight * lines),
     id: oid('text'),
     ...o,
   });
+};
 
 function doc(background: string, objects: Record<string, unknown>[]) {
   return { version: 1, background, objects };

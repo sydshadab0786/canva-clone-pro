@@ -162,14 +162,22 @@ export function EditorCanvas({ stageWidth, stageHeight }: Props) {
       const newHeight = Math.max(4, obj.height * scaleY);
       node.scaleX(1);
       node.scaleY(1);
+
+      // Ellipses are center-origin in Konva, so the top-left must be derived
+      // from the NEW radii — using the old width would offset the shape by
+      // half the size delta on every resize.
+      const pos =
+        obj.type === 'ellipse'
+          ? { x: node.x() - newWidth / 2, y: node.y() - newHeight / 2 }
+          : { x: node.x(), y: node.y() };
+
       const patch: Partial<SceneObject> = {
         width: newWidth,
         height: newHeight,
         rotation: node.rotation(),
+        x: pos.x,
+        y: pos.y,
       };
-      const pos = modelPos(obj, node);
-      patch.x = pos.x;
-      patch.y = pos.y;
       if (obj.type === 'text') {
         (patch as Partial<Extract<SceneObject, { type: 'text' }>>).fontSize = Math.max(
           4,
