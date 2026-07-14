@@ -29,6 +29,19 @@ const ICONS: Record<SceneObjectType, typeof Type> = {
   group: Boxes,
 };
 
+/**
+ * Label a layer the way a designer expects: text layers are identified by their
+ * content (a panel full of layers all called "Text" is unusable), everything
+ * else falls back to its object name.
+ */
+function layerLabel(obj: SceneObject): string {
+  if (obj.type === 'text') {
+    const content = obj.text?.replace(/\s+/g, ' ').trim();
+    if (content) return content.slice(0, 28);
+  }
+  return obj.name;
+}
+
 export function LayersPanel() {
   const dispatch = useAppDispatch();
   const doc = useAppSelector(selectDocument);
@@ -70,7 +83,7 @@ export function LayersPanel() {
               tabIndex={0}
             >
               <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
-              <span className="flex-1 truncate">{obj.name}</span>
+              <span className="flex-1 truncate">{layerLabel(obj)}</span>
 
               <div className="flex items-center opacity-0 transition-opacity group-hover:opacity-100">
                 <button

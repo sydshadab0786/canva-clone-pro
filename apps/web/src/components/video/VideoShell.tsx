@@ -121,7 +121,8 @@ export function VideoShell({ id }: { id: string }) {
             {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
             {savedLabel}
           </span>
-          {meta.projectId && <ExportButton projectId={meta.projectId} />}
+          {/* Flush the timeline before rendering — the worker reads it from the server. */}
+          {meta.projectId && <ExportButton projectId={meta.projectId} onBeforeExport={persist} />}
           <ThemeToggle />
         </div>
       </header>

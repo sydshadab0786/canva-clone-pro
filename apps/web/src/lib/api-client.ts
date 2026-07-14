@@ -90,7 +90,14 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
     ...(headers as Record<string, string> | undefined),
   };
 
-  const access = tokenStore.getAccess();
+  // The access token lives in memory, so a hard page load starts with none.
+  // If we hold a refresh token, mint an access token up-front rather than
+  // firing a request we know will 401 (wasted round-trip + console noise).
+  let access = tokenStore.getAccess();
+  if (auth && !access && tokenStore.getRefresh()) {
+    await refreshOnce();
+    access = tokenStore.getAccess();
+  }
   if (auth && access) {
     finalHeaders.Authorization = `Bearer ${access}`;
   }

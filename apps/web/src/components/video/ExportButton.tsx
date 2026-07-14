@@ -5,8 +5,20 @@ import { Download, Loader2, Check, AlertCircle } from 'lucide-react';
 import { getExportStatus, startExport, type ExportJob } from '@/lib/api/export';
 import { Button } from '@/components/ui/button';
 
-/** Kick off an export and poll its progress until done. */
-export function ExportButton({ projectId }: { projectId: string }) {
+/**
+ * Kick off an export and poll its progress until done.
+ *
+ * `onBeforeExport` must flush any pending autosave: the renderer reads the
+ * document from the server, so exporting without flushing would silently
+ * render a stale (or empty) timeline.
+ */
+export function ExportButton({
+  projectId,
+  onBeforeExport,
+}: {
+  projectId: string;
+  onBeforeExport?: () => Promise<void>;
+}) {
   const [job, setJob] = useState<ExportJob | null>(null);
   const [busy, setBusy] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -18,6 +30,7 @@ export function ExportButton({ projectId }: { projectId: string }) {
   const begin = async () => {
     setBusy(true);
     try {
+      await onBeforeExport?.();
       const started = await startExport(projectId);
       setJob(started);
       pollRef.current = setInterval(async () => {
@@ -45,9 +58,14 @@ export function ExportButton({ projectId }: { projectId: string }) {
 
   if (job?.status === 'failed') {
     return (
-      <Button size="sm" variant="outline" className="gap-1" onClick={begin} title={job.error ?? 'Export failed'}>
-        <AlertCircle className="h-4 w-4 text-destructive" /> Retry
-      </Button>
+      <div className="flex items-center gap-2">
+        <span className="max-w-[220px] truncate text-xs text-destructive" title={job.error ?? undefined}>
+          {job.error ?? 'Export failed'}
+        </span>
+        <Button size="sm" variant="outline" className="gap-1" onClick={begin}>
+          <AlertCircle className="h-4 w-4 text-destructive" /> Retry
+        </Button>
+      </div>
     );
   }
 
