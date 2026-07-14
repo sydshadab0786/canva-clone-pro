@@ -19,6 +19,7 @@ export default defineConfig({
     command: `pnpm dev -p ${PORT}`,
     url: baseURL,
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    // Next's cold start is slow on WSL/Windows-mounted filesystems.
+    timeout: 240_000,
   },
 });

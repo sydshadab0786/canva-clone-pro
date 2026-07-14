@@ -45,8 +45,15 @@ export async function register(input: {
   return res.user;
 }
 
+/**
+ * Resolve the signed-in user's full profile.
+ *
+ * Deliberately hits /users/me, not /auth/me: the latter returns only the JWT
+ * principal ({id, email, role}) and would clobber richer fields like
+ * displayName that the UI depends on.
+ */
 export async function fetchMe(): Promise<AuthUser> {
-  return apiFetch<AuthUser>('/auth/me', { method: 'GET' });
+  return apiFetch<AuthUser>('/users/me', { method: 'GET' });
 }
 
 export async function logout(): Promise<void> {

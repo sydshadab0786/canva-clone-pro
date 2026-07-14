@@ -70,7 +70,7 @@ export default function DashboardHome() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">
-            Welcome{user ? `, ${user.displayName.split(' ')[0]}` : ''} 👋
+            Welcome{user?.displayName ? `, ${user.displayName.split(' ')[0]}` : ''} 👋
           </h1>
           <p className="text-sm text-muted-foreground">What will you design today?</p>
         </div>
